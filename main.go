@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -12,6 +13,8 @@ import (
 	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
+
+	"github.com/adam-power/wcp-prereq-checker/check"
 )
 
 const (
@@ -71,11 +74,27 @@ func main() {
 		log.Fatalf("Error retrieving compute cluster \"%s\": %v", vCenterCluster, err)
 	}
 
-	if len(clusters) != 1 {
-		log.Fatalf("Cluster \"%s\" not found.", vCenterCluster)
-	} else if len(clusters[0].Host) < 3 {
-		log.Fatalf("Cluster \"%s\" must have at least 3 hosts, but has %d hosts.\n", vCenterCluster, len(clusters[0].Host))
-	} else {
-		log.Printf("Cluster \"%s\" has at least 3 hosts.\n", vCenterCluster)
-	}
+	checkRunner := check.NewRunner()
+	checkRunner.RunCheck(
+		fmt.Sprintf("Cluster \"%s\" exists.", vCenterCluster),
+		func() bool {
+			if len(clusters) != 1 {
+				return false
+			} else {
+				return true
+			}
+		},
+	)
+	checkRunner.RunCheck(
+		"Workload cluster has at least 3 hosts.",
+		func() bool {
+			if len(clusters[0].Host) < 3 {
+				return false
+			} else {
+				return true
+			}
+		},
+	)
+
+	checkRunner.Summary()
 }
