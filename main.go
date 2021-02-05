@@ -43,6 +43,9 @@ func main() {
 		log.Fatalf("Failed to parse vCenter URL: %v", err)
 	}
 	vcURL.User = url.UserPassword(vCenterUsername, vCenterPassword)
+	if vcURL.Path == "/" || vcURL.Path == "" {
+		vcURL.Path = "/sdk"
+	}
 
 	vCenterSession := &cache.Session{
 		URL:      vcURL,
