@@ -28,9 +28,11 @@ const (
 func RunIaaSChecks() {
 	var err error
 	ctx := context.Background()
-	vc := new(vim25.Client)
 
-	vCenterClientLogin(ctx, vc)
+	vc, err := vlogin(ctx)
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
 
 	vCenterCluster := os.Getenv(envWorkloadCluster)
 
@@ -71,7 +73,9 @@ func RunIaaSChecks() {
 	)
 }
 
-func vCenterClientLogin(ctx context.Context, vc *vim25.Client) {
+func vlogin(ctx context.Context) (*vim25.Client, error) {
+	vc := new(vim25.Client)
+
 	vCenterURL := os.Getenv(envURL)
 	vCenterUsername := os.Getenv(envUsername)
 	vCenterPassword := os.Getenv(envPassword)
@@ -82,10 +86,9 @@ func vCenterClientLogin(ctx context.Context, vc *vim25.Client) {
 		vCenterInsecure = true
 	}
 
-	// Initialize vCenter URL object
 	vcURL, err := url.Parse(vCenterURL)
 	if err != nil {
-		log.Fatalf("Failed to parse vCenter URL: %v", err)
+		return nil, fmt.Errorf("Failed to parse vCenter URL: %v", err)
 	}
 	vcURL.User = url.UserPassword(vCenterUsername, vCenterPassword)
 	if vcURL.Path == "/" || vcURL.Path == "" {
@@ -97,9 +100,10 @@ func vCenterClientLogin(ctx context.Context, vc *vim25.Client) {
 		Insecure: vCenterInsecure,
 	}
 
-	// vCenter login
 	err = vCenterSession.Login(ctx, vc, nil)
 	if err != nil {
-		log.Fatalf("Failed to log in to vCenter: %v", err)
+		return nil, fmt.Errorf("Failed to log in to vCenter: %v", err)
 	}
+
+	return vc, nil
 }
